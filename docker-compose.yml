@@ -1,0 +1,21 @@
+
+services:
+  # 1. O serviço da nossa API Python
+  api:
+    build: .          # Constrói a partir do Dockerfile na pasta atual
+    ports:
+      - "5000:5000"  # Mapeia a porta 5000 do host para a 5000 do container
+    env_file:
+      - .env         # Carrega a chave secreta
+    volumes:
+      # PONTO CRÍTICO:
+      # Isso mapeia uma pasta 'data' local para a pasta '/app/data' no container.
+      # É aqui que o arquivo 'players.db' será salvo, garantindo que ele não
+      # seja apagado quando o container parar.
+      - ./data:/app/data
+
+# O Dockerfile?
+# Você não precisa criar um arquivo Dockerfile!
+# O 'build: .' no docker-compose é inteligente, mas...
+# Ah, espera. O Gunicorn precisa do Dockerfile.
+# Desculpe, são 5 arquivos.
