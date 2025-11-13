@@ -23,7 +23,6 @@ def init_db():
     print("Inicializando o banco de dados SQLite...")
     try:
         with get_db_conn() as conn:
-            # Tabela 1: Nicks dos Jogadores
             conn.execute("""
             CREATE TABLE IF NOT EXISTS player_nicks (
                 auth_id TEXT PRIMARY KEY,
@@ -32,8 +31,6 @@ def init_db():
             );
             """)
             
-            # --- ATUALIZADO: Tabela 2: Mensagens Públicas do Chat ---
-            # (auth_id e FOREIGN KEY removidos)
             conn.execute("""
             CREATE TABLE IF NOT EXISTS chat_messages (
                 message_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +47,6 @@ def init_db():
 # --- Middleware de Segurança ---
 @app.before_request
 def check_api_key():
-    # Ignora a verificação de chave para a rota 'health_check'
     if request.path == '/':
         return
 
@@ -71,7 +67,7 @@ def check_api_key():
 def health_check():
     return jsonify({"status": "API online com SQLite"}), 200
 
-# --- Rotas de Player Nick (Sem mudanças) ---
+# --- Rotas de Player Nick ---
 
 @app.route('/player/<string:auth_id>/nick', methods=['GET'])
 def get_nick(auth_id):
@@ -106,7 +102,7 @@ def set_nick(auth_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROTA ADICIONADA (Verificar Nick) ---
+# --- ROTA ADICIONADA ---
 @app.route('/nicks/check', methods=['GET'])
 def check_nick_exists():
     """Verifica se um nick já existe (case-insensitive)."""
@@ -132,13 +128,12 @@ def check_nick_exists():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROTAS DE CHAT ATUALIZADAS ---
+# --- ROTAS DE CHAT ---
 
 @app.route('/chat/messages', methods=['GET'])
 def get_chat_messages():
     """Pega as últimas N mensagens públicas. O cliente chama isso."""
     try:
-        # Pega as últimas 30 mensagens, da mais antiga para a mais nova
         sql = """
         SELECT nick, message_text, timestamp FROM chat_messages
         ORDER BY message_id DESC
@@ -148,34 +143,28 @@ def get_chat_messages():
             cur = conn.execute(sql)
             rows = cur.fetchall()
             
-        # Inverte a lista para que fiquem na ordem correta (antiga -> nova)
         messages = [dict(row) for row in reversed(rows)]
         return jsonify(messages), 200
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ATUALIZADO ---
 @app.route('/chat/message', methods=['POST'])
 def post_chat_message():
     """Salva uma nova mensagem pública. O servidor Unity chama isso."""
     data = request.json
-    # auth_id = data.get('auth_id') # <-- REMOVIDO
     nick = data.get('nick')
     message_text = data.get('message_text')
 
-    # Validação atualizada
     if not all([nick, message_text]):
         return jsonify({"error": "Missing nick or message_text"}), 400
 
     try:
-        # SQL Atualizado
         sql = """
         INSERT INTO chat_messages (nick, message_text)
         VALUES (?, ?);
         """
         with get_db_conn() as conn:
-            # Parâmetros atualizados
             conn.execute(sql, (nick, message_text))
             conn.commit()
         return jsonify({"message": "Message saved"}), 201
@@ -183,7 +172,7 @@ def post_chat_message():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROTAS DE ADMIN (Sem mudanças, já não usava auth_id) ---
+# --- ROTAS DE ADMIN ---
 
 @app.route('/admin/player/<string:auth_id>', methods=['DELETE'])
 def admin_delete_nick(auth_id):
@@ -239,7 +228,6 @@ def delete_chat_messages_range():
         sql = "DELETE FROM chat_messages WHERE message_id BETWEEN ? AND ?;"
         
         with get_db_conn() as conn:
-            # Precisamos de um cursor para obter o 'rowcount' (linhas afetadas)
             cur = conn.cursor()
             cur.execute(sql, (start_id, end_id))
             deleted_count = cur.rowcount
@@ -254,12 +242,9 @@ def delete_chat_messages_range():
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
 
-# --- Inicialização ---
 
-# Inicializa o DB (cria a tabela) ANTES de rodar a app
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=5000)
 else:
-    # Isso é chamado quando o Gunicorn roda a app
     init_db()
