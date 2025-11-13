@@ -8,26 +8,4 @@ services:
     volumes:
       - ./data:/app/data
     restart: always
-    networks:
-      - chorus-network
 
-  game-server:
-    build: /home/ubuntu/chorus_server
-    ports:
-      - "7777:7777/udp"
-      - "20000:20000/udp"
-    environment:
-      # api em vez de 'localhost'
-      - API_BASE_URL=http://api:5000
-    env_file:
-      - .env
-    restart: always
-    depends_on:
-      - api
-    networks:
-      - chorus-network
-
-# Rede customizada (facilita debug)
-networks:
-  chorus-network:
-    driver: bridge
