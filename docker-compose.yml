@@ -1,21 +1,38 @@
-
 services:
-  # 1. O serviço da nossa API Python
+  # 1. API Python
   api:
-    build: .          # Constrói a partir do Dockerfile na pasta atual
+    build: .
     ports:
-      - "5000:5000"  # Mapeia a porta 5000 do host para a 5000 do container
+      - "80:5000"
     env_file:
-      - .env         # Carrega a chave secreta
+      - .env
     volumes:
-      # PONTO CRÍTICO:
-      # Isso mapeia uma pasta 'data' local para a pasta '/app/data' no container.
-      # É aqui que o arquivo 'players.db' será salvo, garantindo que ele não
-      # seja apagado quando o container parar.
       - ./data:/app/data
+    restart: always
+    # Nome de rede customizado para debug
+    networks:
+      - chorus-network
 
-# O Dockerfile?
-# Você não precisa criar um arquivo Dockerfile!
-# O 'build: .' no docker-compose é inteligente, mas...
-# Ah, espera. O Gunicorn precisa do Dockerfile.
-# Desculpe, são 5 arquivos.
+  # 2. Servidor de Jogo Unity
+  game-server:
+    build: /home/ubuntu/chorus_server
+    ports:
+      - "7777:7777/udp"
+      - "20000:20000/udp"
+    environment:
+      # api em vez de 'localhost'
+      # Docker cria automaticamente um DNS com o nome do serviço
+      - API_BASE_URL=http://api:5000
+    env_file:
+      - .env
+    restart: always
+    # Garante que a API inicia antes
+    depends_on:
+      - api
+    networks:
+      - chorus-network
+
+# Rede customizada (facilita debug)
+networks:
+  chorus-network:
+    driver: bridge
