@@ -3,12 +3,10 @@ import sqlite3
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
-# Carrega as variáveis do arquivo .env
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- Configuração do SQLite ---
 DB_DIR = "/app/data"
 DATABASE_PATH = os.path.join(DB_DIR, "players.db")
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY')

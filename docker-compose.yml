@@ -1,5 +1,4 @@
 services:
-  # 1. API Python
   api:
     build: .
     ports:
@@ -9,11 +8,9 @@ services:
     volumes:
       - ./data:/app/data
     restart: always
-    # Nome de rede customizado para debug
     networks:
       - chorus-network
 
-  # 2. Servidor de Jogo Unity
   game-server:
     build: /home/ubuntu/chorus_server
     ports:
@@ -21,12 +18,10 @@ services:
       - "20000:20000/udp"
     environment:
       # api em vez de 'localhost'
-      # Docker cria automaticamente um DNS com o nome do serviço
       - API_BASE_URL=http://api:5000
     env_file:
       - .env
     restart: always
-    # Garante que a API inicia antes
     depends_on:
       - api
     networks:
